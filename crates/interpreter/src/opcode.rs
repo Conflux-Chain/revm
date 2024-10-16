@@ -9,7 +9,7 @@ pub use tables::{
     InstructionTables,
 };
 
-use crate::{instructions::*, primitives::Spec, Host};
+use crate::{instructions::*, primitives::Spec};
 use core::{fmt, ptr::NonNull};
 
 /// An error indicating that an opcode is invalid.
@@ -411,7 +411,7 @@ macro_rules! opcodes {
         static NAME_TO_OPCODE: phf::Map<&'static str, OpCode> = stringify_with_cb! { phf_map_cb; $($name)* };
 
         /// Returns the instruction function for the given opcode and spec.
-        pub const fn instruction<H: Host + ?Sized, SPEC: Spec>(opcode: u8) -> Instruction<H> {
+        pub const fn instruction<SPEC: Spec>(opcode: u8) -> Instruction {
             match opcode {
                 $($name => $f,)*
                 _ => control::unknown,
@@ -436,7 +436,7 @@ opcodes! {
     0x07 => SMOD       => arithmetic::smod           => stack_io(2, 1);
     0x08 => ADDMOD     => arithmetic::addmod         => stack_io(3, 1);
     0x09 => MULMOD     => arithmetic::mulmod         => stack_io(3, 1);
-    0x0A => EXP        => arithmetic::exp::<H, SPEC> => stack_io(2, 1);
+    0x0A => EXP        => arithmetic::exp::<SPEC> => stack_io(2, 1);
     0x0B => SIGNEXTEND => arithmetic::signextend     => stack_io(2, 1);
     // 0x0C
     // 0x0D
@@ -453,9 +453,9 @@ opcodes! {
     0x18 => XOR    => bitwise::bitxor         => stack_io(2, 1);
     0x19 => NOT    => bitwise::not            => stack_io(1, 1);
     0x1A => BYTE   => bitwise::byte           => stack_io(2, 1);
-    0x1B => SHL    => bitwise::shl::<H, SPEC> => stack_io(2, 1);
-    0x1C => SHR    => bitwise::shr::<H, SPEC> => stack_io(2, 1);
-    0x1D => SAR    => bitwise::sar::<H, SPEC> => stack_io(2, 1);
+    0x1B => SHL    => bitwise::shl::<SPEC> => stack_io(2, 1);
+    0x1C => SHR    => bitwise::shr::<SPEC> => stack_io(2, 1);
+    0x1D => SAR    => bitwise::sar::<SPEC> => stack_io(2, 1);
     // 0x1E
     // 0x1F
     0x20 => KECCAK256 => system::keccak256    => stack_io(2, 1);
@@ -475,7 +475,7 @@ opcodes! {
     // 0x2E
     // 0x2F
     0x30 => ADDRESS      => system::address          => stack_io(0, 1);
-    0x31 => BALANCE      => host::balance::<H, SPEC> => stack_io(1, 1);
+    0x31 => BALANCE      => host::balance::<SPEC> => stack_io(1, 1);
     0x32 => ORIGIN       => host_env::origin         => stack_io(0, 1);
     0x33 => CALLER       => system::caller           => stack_io(0, 1);
     0x34 => CALLVALUE    => system::callvalue        => stack_io(0, 1);
@@ -486,22 +486,22 @@ opcodes! {
     0x39 => CODECOPY     => system::codecopy         => stack_io(3, 0), not_eof;
 
     0x3A => GASPRICE       => host_env::gasprice                => stack_io(0, 1);
-    0x3B => EXTCODESIZE    => host::extcodesize::<H, SPEC>      => stack_io(1, 1), not_eof;
-    0x3C => EXTCODECOPY    => host::extcodecopy::<H, SPEC>      => stack_io(4, 0), not_eof;
-    0x3D => RETURNDATASIZE => system::returndatasize::<H, SPEC> => stack_io(0, 1);
-    0x3E => RETURNDATACOPY => system::returndatacopy::<H, SPEC> => stack_io(3, 0);
-    0x3F => EXTCODEHASH    => host::extcodehash::<H, SPEC>      => stack_io(1, 1), not_eof;
-    0x40 => BLOCKHASH      => host::blockhash::<H, SPEC>          => stack_io(1, 1);
+    0x3B => EXTCODESIZE    => host::extcodesize::<SPEC>      => stack_io(1, 1), not_eof;
+    0x3C => EXTCODECOPY    => host::extcodecopy::<SPEC>      => stack_io(4, 0), not_eof;
+    0x3D => RETURNDATASIZE => system::returndatasize::<SPEC> => stack_io(0, 1);
+    0x3E => RETURNDATACOPY => system::returndatacopy::<SPEC> => stack_io(3, 0);
+    0x3F => EXTCODEHASH    => host::extcodehash::<SPEC>      => stack_io(1, 1), not_eof;
+    0x40 => BLOCKHASH      => host::blockhash::<SPEC>          => stack_io(1, 1);
     0x41 => COINBASE       => host_env::coinbase                => stack_io(0, 1);
     0x42 => TIMESTAMP      => host_env::timestamp               => stack_io(0, 1);
     0x43 => NUMBER         => host_env::block_number            => stack_io(0, 1);
-    0x44 => DIFFICULTY     => host_env::difficulty::<H, SPEC>   => stack_io(0, 1);
+    0x44 => DIFFICULTY     => host_env::difficulty::<SPEC>   => stack_io(0, 1);
     0x45 => GASLIMIT       => host_env::gaslimit                => stack_io(0, 1);
-    0x46 => CHAINID        => host_env::chainid::<H, SPEC>      => stack_io(0, 1);
-    0x47 => SELFBALANCE    => host::selfbalance::<H, SPEC>      => stack_io(0, 1);
-    0x48 => BASEFEE        => host_env::basefee::<H, SPEC>      => stack_io(0, 1);
-    0x49 => BLOBHASH       => host_env::blob_hash::<H, SPEC>    => stack_io(1, 1);
-    0x4A => BLOBBASEFEE    => host_env::blob_basefee::<H, SPEC> => stack_io(0, 1);
+    0x46 => CHAINID        => host_env::chainid::<SPEC>      => stack_io(0, 1);
+    0x47 => SELFBALANCE    => host::selfbalance::<SPEC>      => stack_io(0, 1);
+    0x48 => BASEFEE        => host_env::basefee::<SPEC>      => stack_io(0, 1);
+    0x49 => BLOBHASH       => host_env::blob_hash::<SPEC>    => stack_io(1, 1);
+    0x4A => BLOBBASEFEE    => host_env::blob_basefee::<SPEC> => stack_io(0, 1);
     // 0x4B
     // 0x4C
     // 0x4D
@@ -511,91 +511,91 @@ opcodes! {
     0x51 => MLOAD    => memory::mload            => stack_io(1, 1);
     0x52 => MSTORE   => memory::mstore           => stack_io(2, 0);
     0x53 => MSTORE8  => memory::mstore8          => stack_io(2, 0);
-    0x54 => SLOAD    => host::sload::<H, SPEC>   => stack_io(1, 1);
-    0x55 => SSTORE   => host::sstore::<H, SPEC>  => stack_io(2, 0);
+    0x54 => SLOAD    => host::sload::<SPEC>   => stack_io(1, 1);
+    0x55 => SSTORE   => host::sstore::<SPEC>  => stack_io(2, 0);
     0x56 => JUMP     => control::jump            => stack_io(1, 0), not_eof;
     0x57 => JUMPI    => control::jumpi           => stack_io(2, 0), not_eof;
     0x58 => PC       => control::pc              => stack_io(0, 1), not_eof;
     0x59 => MSIZE    => memory::msize            => stack_io(0, 1);
     0x5A => GAS      => system::gas              => stack_io(0, 1), not_eof;
     0x5B => JUMPDEST => control::jumpdest_or_nop => stack_io(0, 0);
-    0x5C => TLOAD    => host::tload::<H, SPEC>   => stack_io(1, 1);
-    0x5D => TSTORE   => host::tstore::<H, SPEC>  => stack_io(2, 0);
-    0x5E => MCOPY    => memory::mcopy::<H, SPEC> => stack_io(3, 0);
+    0x5C => TLOAD    => host::tload::<SPEC>   => stack_io(1, 1);
+    0x5D => TSTORE   => host::tstore::<SPEC>  => stack_io(2, 0);
+    0x5E => MCOPY    => memory::mcopy::<SPEC> => stack_io(3, 0);
 
-    0x5F => PUSH0  => stack::push0::<H, SPEC> => stack_io(0, 1);
-    0x60 => PUSH1  => stack::push::<1, H>     => stack_io(0, 1), immediate_size(1);
-    0x61 => PUSH2  => stack::push::<2, H>     => stack_io(0, 1), immediate_size(2);
-    0x62 => PUSH3  => stack::push::<3, H>     => stack_io(0, 1), immediate_size(3);
-    0x63 => PUSH4  => stack::push::<4, H>     => stack_io(0, 1), immediate_size(4);
-    0x64 => PUSH5  => stack::push::<5, H>     => stack_io(0, 1), immediate_size(5);
-    0x65 => PUSH6  => stack::push::<6, H>     => stack_io(0, 1), immediate_size(6);
-    0x66 => PUSH7  => stack::push::<7, H>     => stack_io(0, 1), immediate_size(7);
-    0x67 => PUSH8  => stack::push::<8, H>     => stack_io(0, 1), immediate_size(8);
-    0x68 => PUSH9  => stack::push::<9, H>     => stack_io(0, 1), immediate_size(9);
-    0x69 => PUSH10 => stack::push::<10, H>    => stack_io(0, 1), immediate_size(10);
-    0x6A => PUSH11 => stack::push::<11, H>    => stack_io(0, 1), immediate_size(11);
-    0x6B => PUSH12 => stack::push::<12, H>    => stack_io(0, 1), immediate_size(12);
-    0x6C => PUSH13 => stack::push::<13, H>    => stack_io(0, 1), immediate_size(13);
-    0x6D => PUSH14 => stack::push::<14, H>    => stack_io(0, 1), immediate_size(14);
-    0x6E => PUSH15 => stack::push::<15, H>    => stack_io(0, 1), immediate_size(15);
-    0x6F => PUSH16 => stack::push::<16, H>    => stack_io(0, 1), immediate_size(16);
-    0x70 => PUSH17 => stack::push::<17, H>    => stack_io(0, 1), immediate_size(17);
-    0x71 => PUSH18 => stack::push::<18, H>    => stack_io(0, 1), immediate_size(18);
-    0x72 => PUSH19 => stack::push::<19, H>    => stack_io(0, 1), immediate_size(19);
-    0x73 => PUSH20 => stack::push::<20, H>    => stack_io(0, 1), immediate_size(20);
-    0x74 => PUSH21 => stack::push::<21, H>    => stack_io(0, 1), immediate_size(21);
-    0x75 => PUSH22 => stack::push::<22, H>    => stack_io(0, 1), immediate_size(22);
-    0x76 => PUSH23 => stack::push::<23, H>    => stack_io(0, 1), immediate_size(23);
-    0x77 => PUSH24 => stack::push::<24, H>    => stack_io(0, 1), immediate_size(24);
-    0x78 => PUSH25 => stack::push::<25, H>    => stack_io(0, 1), immediate_size(25);
-    0x79 => PUSH26 => stack::push::<26, H>    => stack_io(0, 1), immediate_size(26);
-    0x7A => PUSH27 => stack::push::<27, H>    => stack_io(0, 1), immediate_size(27);
-    0x7B => PUSH28 => stack::push::<28, H>    => stack_io(0, 1), immediate_size(28);
-    0x7C => PUSH29 => stack::push::<29, H>    => stack_io(0, 1), immediate_size(29);
-    0x7D => PUSH30 => stack::push::<30, H>    => stack_io(0, 1), immediate_size(30);
-    0x7E => PUSH31 => stack::push::<31, H>    => stack_io(0, 1), immediate_size(31);
-    0x7F => PUSH32 => stack::push::<32, H>    => stack_io(0, 1), immediate_size(32);
+    0x5F => PUSH0  => stack::push0::<SPEC> => stack_io(0, 1);
+    0x60 => PUSH1  => stack::push::<1>     => stack_io(0, 1), immediate_size(1);
+    0x61 => PUSH2  => stack::push::<2>     => stack_io(0, 1), immediate_size(2);
+    0x62 => PUSH3  => stack::push::<3>     => stack_io(0, 1), immediate_size(3);
+    0x63 => PUSH4  => stack::push::<4>     => stack_io(0, 1), immediate_size(4);
+    0x64 => PUSH5  => stack::push::<5>     => stack_io(0, 1), immediate_size(5);
+    0x65 => PUSH6  => stack::push::<6>     => stack_io(0, 1), immediate_size(6);
+    0x66 => PUSH7  => stack::push::<7>     => stack_io(0, 1), immediate_size(7);
+    0x67 => PUSH8  => stack::push::<8>     => stack_io(0, 1), immediate_size(8);
+    0x68 => PUSH9  => stack::push::<9>     => stack_io(0, 1), immediate_size(9);
+    0x69 => PUSH10 => stack::push::<10>    => stack_io(0, 1), immediate_size(10);
+    0x6A => PUSH11 => stack::push::<11>    => stack_io(0, 1), immediate_size(11);
+    0x6B => PUSH12 => stack::push::<12>    => stack_io(0, 1), immediate_size(12);
+    0x6C => PUSH13 => stack::push::<13>    => stack_io(0, 1), immediate_size(13);
+    0x6D => PUSH14 => stack::push::<14>    => stack_io(0, 1), immediate_size(14);
+    0x6E => PUSH15 => stack::push::<15>    => stack_io(0, 1), immediate_size(15);
+    0x6F => PUSH16 => stack::push::<16>    => stack_io(0, 1), immediate_size(16);
+    0x70 => PUSH17 => stack::push::<17>    => stack_io(0, 1), immediate_size(17);
+    0x71 => PUSH18 => stack::push::<18>    => stack_io(0, 1), immediate_size(18);
+    0x72 => PUSH19 => stack::push::<19>    => stack_io(0, 1), immediate_size(19);
+    0x73 => PUSH20 => stack::push::<20>    => stack_io(0, 1), immediate_size(20);
+    0x74 => PUSH21 => stack::push::<21>    => stack_io(0, 1), immediate_size(21);
+    0x75 => PUSH22 => stack::push::<22>    => stack_io(0, 1), immediate_size(22);
+    0x76 => PUSH23 => stack::push::<23>    => stack_io(0, 1), immediate_size(23);
+    0x77 => PUSH24 => stack::push::<24>    => stack_io(0, 1), immediate_size(24);
+    0x78 => PUSH25 => stack::push::<25>    => stack_io(0, 1), immediate_size(25);
+    0x79 => PUSH26 => stack::push::<26>    => stack_io(0, 1), immediate_size(26);
+    0x7A => PUSH27 => stack::push::<27>    => stack_io(0, 1), immediate_size(27);
+    0x7B => PUSH28 => stack::push::<28>    => stack_io(0, 1), immediate_size(28);
+    0x7C => PUSH29 => stack::push::<29>    => stack_io(0, 1), immediate_size(29);
+    0x7D => PUSH30 => stack::push::<30>    => stack_io(0, 1), immediate_size(30);
+    0x7E => PUSH31 => stack::push::<31>    => stack_io(0, 1), immediate_size(31);
+    0x7F => PUSH32 => stack::push::<32>    => stack_io(0, 1), immediate_size(32);
 
-    0x80 => DUP1  => stack::dup::<1, H>  => stack_io(1, 2);
-    0x81 => DUP2  => stack::dup::<2, H>  => stack_io(2, 3);
-    0x82 => DUP3  => stack::dup::<3, H>  => stack_io(3, 4);
-    0x83 => DUP4  => stack::dup::<4, H>  => stack_io(4, 5);
-    0x84 => DUP5  => stack::dup::<5, H>  => stack_io(5, 6);
-    0x85 => DUP6  => stack::dup::<6, H>  => stack_io(6, 7);
-    0x86 => DUP7  => stack::dup::<7, H>  => stack_io(7, 8);
-    0x87 => DUP8  => stack::dup::<8, H>  => stack_io(8, 9);
-    0x88 => DUP9  => stack::dup::<9, H>  => stack_io(9, 10);
-    0x89 => DUP10 => stack::dup::<10, H> => stack_io(10, 11);
-    0x8A => DUP11 => stack::dup::<11, H> => stack_io(11, 12);
-    0x8B => DUP12 => stack::dup::<12, H> => stack_io(12, 13);
-    0x8C => DUP13 => stack::dup::<13, H> => stack_io(13, 14);
-    0x8D => DUP14 => stack::dup::<14, H> => stack_io(14, 15);
-    0x8E => DUP15 => stack::dup::<15, H> => stack_io(15, 16);
-    0x8F => DUP16 => stack::dup::<16, H> => stack_io(16, 17);
+    0x80 => DUP1  => stack::dup::<1>  => stack_io(1, 2);
+    0x81 => DUP2  => stack::dup::<2>  => stack_io(2, 3);
+    0x82 => DUP3  => stack::dup::<3>  => stack_io(3, 4);
+    0x83 => DUP4  => stack::dup::<4>  => stack_io(4, 5);
+    0x84 => DUP5  => stack::dup::<5>  => stack_io(5, 6);
+    0x85 => DUP6  => stack::dup::<6>  => stack_io(6, 7);
+    0x86 => DUP7  => stack::dup::<7>  => stack_io(7, 8);
+    0x87 => DUP8  => stack::dup::<8>  => stack_io(8, 9);
+    0x88 => DUP9  => stack::dup::<9>  => stack_io(9, 10);
+    0x89 => DUP10 => stack::dup::<10> => stack_io(10, 11);
+    0x8A => DUP11 => stack::dup::<11> => stack_io(11, 12);
+    0x8B => DUP12 => stack::dup::<12> => stack_io(12, 13);
+    0x8C => DUP13 => stack::dup::<13> => stack_io(13, 14);
+    0x8D => DUP14 => stack::dup::<14> => stack_io(14, 15);
+    0x8E => DUP15 => stack::dup::<15> => stack_io(15, 16);
+    0x8F => DUP16 => stack::dup::<16> => stack_io(16, 17);
 
-    0x90 => SWAP1  => stack::swap::<1, H>  => stack_io(2, 2);
-    0x91 => SWAP2  => stack::swap::<2, H>  => stack_io(3, 3);
-    0x92 => SWAP3  => stack::swap::<3, H>  => stack_io(4, 4);
-    0x93 => SWAP4  => stack::swap::<4, H>  => stack_io(5, 5);
-    0x94 => SWAP5  => stack::swap::<5, H>  => stack_io(6, 6);
-    0x95 => SWAP6  => stack::swap::<6, H>  => stack_io(7, 7);
-    0x96 => SWAP7  => stack::swap::<7, H>  => stack_io(8, 8);
-    0x97 => SWAP8  => stack::swap::<8, H>  => stack_io(9, 9);
-    0x98 => SWAP9  => stack::swap::<9, H>  => stack_io(10, 10);
-    0x99 => SWAP10 => stack::swap::<10, H> => stack_io(11, 11);
-    0x9A => SWAP11 => stack::swap::<11, H> => stack_io(12, 12);
-    0x9B => SWAP12 => stack::swap::<12, H> => stack_io(13, 13);
-    0x9C => SWAP13 => stack::swap::<13, H> => stack_io(14, 14);
-    0x9D => SWAP14 => stack::swap::<14, H> => stack_io(15, 15);
-    0x9E => SWAP15 => stack::swap::<15, H> => stack_io(16, 16);
-    0x9F => SWAP16 => stack::swap::<16, H> => stack_io(17, 17);
+    0x90 => SWAP1  => stack::swap::<1>  => stack_io(2, 2);
+    0x91 => SWAP2  => stack::swap::<2>  => stack_io(3, 3);
+    0x92 => SWAP3  => stack::swap::<3>  => stack_io(4, 4);
+    0x93 => SWAP4  => stack::swap::<4>  => stack_io(5, 5);
+    0x94 => SWAP5  => stack::swap::<5>  => stack_io(6, 6);
+    0x95 => SWAP6  => stack::swap::<6>  => stack_io(7, 7);
+    0x96 => SWAP7  => stack::swap::<7>  => stack_io(8, 8);
+    0x97 => SWAP8  => stack::swap::<8>  => stack_io(9, 9);
+    0x98 => SWAP9  => stack::swap::<9>  => stack_io(10, 10);
+    0x99 => SWAP10 => stack::swap::<10> => stack_io(11, 11);
+    0x9A => SWAP11 => stack::swap::<11> => stack_io(12, 12);
+    0x9B => SWAP12 => stack::swap::<12> => stack_io(13, 13);
+    0x9C => SWAP13 => stack::swap::<13> => stack_io(14, 14);
+    0x9D => SWAP14 => stack::swap::<14> => stack_io(15, 15);
+    0x9E => SWAP15 => stack::swap::<15> => stack_io(16, 16);
+    0x9F => SWAP16 => stack::swap::<16> => stack_io(17, 17);
 
-    0xA0 => LOG0 => host::log::<0, H> => stack_io(2, 0);
-    0xA1 => LOG1 => host::log::<1, H> => stack_io(3, 0);
-    0xA2 => LOG2 => host::log::<2, H> => stack_io(4, 0);
-    0xA3 => LOG3 => host::log::<3, H> => stack_io(5, 0);
-    0xA4 => LOG4 => host::log::<4, H> => stack_io(6, 0);
+    0xA0 => LOG0 => host::log::<0> => stack_io(2, 0);
+    0xA1 => LOG1 => host::log::<1> => stack_io(3, 0);
+    0xA2 => LOG2 => host::log::<2> => stack_io(4, 0);
+    0xA3 => LOG3 => host::log::<3> => stack_io(5, 0);
+    0xA4 => LOG4 => host::log::<4> => stack_io(6, 0);
     // 0xA5
     // 0xA6
     // 0xA7
@@ -671,22 +671,22 @@ opcodes! {
     // 0xED
     0xEE => RETURNCONTRACT  => contract::return_contract      => stack_io(2, 0), immediate_size(1), terminating;
     // 0xEF
-    0xF0 => CREATE       => contract::create::<false, H, SPEC> => stack_io(3, 1), not_eof;
-    0xF1 => CALL         => contract::call::<H, SPEC>          => stack_io(7, 1), not_eof;
-    0xF2 => CALLCODE     => contract::call_code::<H, SPEC>     => stack_io(7, 1), not_eof;
+    0xF0 => CREATE       => contract::create::<false, SPEC> => stack_io(3, 1), not_eof;
+    0xF1 => CALL         => contract::call::<SPEC>          => stack_io(7, 1), not_eof;
+    0xF2 => CALLCODE     => contract::call_code::<SPEC>     => stack_io(7, 1), not_eof;
     0xF3 => RETURN       => control::ret                       => stack_io(2, 0), terminating;
-    0xF4 => DELEGATECALL => contract::delegate_call::<H, SPEC> => stack_io(6, 1), not_eof;
-    0xF5 => CREATE2      => contract::create::<true, H, SPEC>  => stack_io(4, 1), not_eof;
+    0xF4 => DELEGATECALL => contract::delegate_call::<SPEC> => stack_io(6, 1), not_eof;
+    0xF5 => CREATE2      => contract::create::<true, SPEC>  => stack_io(4, 1), not_eof;
     // 0xF6
     0xF7 => RETURNDATALOAD  => system::returndataload                => stack_io(1, 1);
-    0xF8 => EXTCALL         => contract::extcall::<H, SPEC>          => stack_io(4, 1);
-    0xF9 => EXTDELEGATECALL => contract::extdelegatecall::<H, SPEC>  => stack_io(3, 1);
-    0xFA => STATICCALL      => contract::static_call::<H, SPEC>      => stack_io(6, 1), not_eof;
+    0xF8 => EXTCALL         => contract::extcall::<SPEC>          => stack_io(4, 1);
+    0xF9 => EXTDELEGATECALL => contract::extdelegatecall::<SPEC>  => stack_io(3, 1);
+    0xFA => STATICCALL      => contract::static_call::<SPEC>      => stack_io(6, 1), not_eof;
     0xFB => EXTSTATICCALL   => contract::extstaticcall               => stack_io(3, 1);
     // 0xFC
-    0xFD => REVERT       => control::revert::<H, SPEC>    => stack_io(2, 0), terminating;
+    0xFD => REVERT       => control::revert::<SPEC>    => stack_io(2, 0), terminating;
     0xFE => INVALID      => control::invalid              => stack_io(0, 0), terminating;
-    0xFF => SELFDESTRUCT => host::selfdestruct::<H, SPEC> => stack_io(1, 0), not_eof, terminating;
+    0xFF => SELFDESTRUCT => host::selfdestruct::<SPEC> => stack_io(1, 0), not_eof, terminating;
 }
 
 #[cfg(test)]

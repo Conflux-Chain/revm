@@ -4,6 +4,10 @@ use crate::{
     Host, Interpreter,
 };
 
+use dynamic_host_macro::use_dyn_host;
+
+
+#[use_dyn_host]
 pub fn pop<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::BASE);
     if let Err(result) = interpreter.stack.pop() {
@@ -14,6 +18,7 @@ pub fn pop<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
 /// EIP-3855: PUSH0 instruction
 ///
 /// Introduce a new instruction which pushes the constant value 0 onto the stack.
+#[use_dyn_host]
 pub fn push0<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, _host: &mut H) {
     check!(interpreter, SHANGHAI);
     gas!(interpreter, gas::BASE);
@@ -22,6 +27,7 @@ pub fn push0<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, _host:
     }
 }
 
+#[use_dyn_host]
 pub fn push<const N: usize, H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::VERYLOW);
     // SAFETY: In analysis we append trailing bytes to the bytecode so that this is safe to do
@@ -37,6 +43,7 @@ pub fn push<const N: usize, H: Host + ?Sized>(interpreter: &mut Interpreter, _ho
     interpreter.instruction_pointer = unsafe { ip.add(N) };
 }
 
+#[use_dyn_host]
 pub fn dup<const N: usize, H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::VERYLOW);
     if let Err(result) = interpreter.stack.dup(N) {
@@ -44,6 +51,7 @@ pub fn dup<const N: usize, H: Host + ?Sized>(interpreter: &mut Interpreter, _hos
     }
 }
 
+#[use_dyn_host]
 pub fn swap<const N: usize, H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::VERYLOW);
     if let Err(result) = interpreter.stack.swap(N) {
@@ -51,6 +59,7 @@ pub fn swap<const N: usize, H: Host + ?Sized>(interpreter: &mut Interpreter, _ho
     }
 }
 
+#[use_dyn_host]
 pub fn dupn<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     require_eof!(interpreter);
     gas!(interpreter, gas::VERYLOW);
@@ -61,6 +70,7 @@ pub fn dupn<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     interpreter.instruction_pointer = unsafe { interpreter.instruction_pointer.offset(1) };
 }
 
+#[use_dyn_host]
 pub fn swapn<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     require_eof!(interpreter);
     gas!(interpreter, gas::VERYLOW);
@@ -71,6 +81,7 @@ pub fn swapn<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     interpreter.instruction_pointer = unsafe { interpreter.instruction_pointer.offset(1) };
 }
 
+#[use_dyn_host]
 pub fn exchange<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     require_eof!(interpreter);
     gas!(interpreter, gas::VERYLOW);

@@ -5,6 +5,10 @@ use crate::{
     Host, InstructionResult, Interpreter, InterpreterResult,
 };
 
+use dynamic_host_macro::use_dyn_host;
+
+
+#[use_dyn_host]
 pub fn rjump<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     require_eof!(interpreter);
     gas!(interpreter, gas::BASE);
@@ -14,6 +18,7 @@ pub fn rjump<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     interpreter.instruction_pointer = unsafe { interpreter.instruction_pointer.offset(offset + 2) };
 }
 
+#[use_dyn_host]
 pub fn rjumpi<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     require_eof!(interpreter);
     gas!(interpreter, gas::CONDITION_JUMP_GAS);
@@ -28,6 +33,7 @@ pub fn rjumpi<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     interpreter.instruction_pointer = unsafe { interpreter.instruction_pointer.offset(offset) };
 }
 
+#[use_dyn_host]
 pub fn rjumpv<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     require_eof!(interpreter);
     gas!(interpreter, gas::CONDITION_JUMP_GAS);
@@ -53,12 +59,14 @@ pub fn rjumpv<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     interpreter.instruction_pointer = unsafe { interpreter.instruction_pointer.offset(offset) };
 }
 
+#[use_dyn_host]
 pub fn jump<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::MID);
     pop!(interpreter, target);
     jump_inner(interpreter, target);
 }
 
+#[use_dyn_host]
 pub fn jumpi<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::HIGH);
     pop!(interpreter, target, cond);
@@ -78,10 +86,12 @@ fn jump_inner(interpreter: &mut Interpreter, target: U256) {
     interpreter.instruction_pointer = unsafe { interpreter.bytecode.as_ptr().add(target) };
 }
 
+#[use_dyn_host]
 pub fn jumpdest_or_nop<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::JUMPDEST);
 }
 
+#[use_dyn_host]
 pub fn callf<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     require_eof!(interpreter);
     gas!(interpreter, gas::LOW);
@@ -114,6 +124,7 @@ pub fn callf<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     interpreter.load_eof_code(idx, 0)
 }
 
+#[use_dyn_host]
 pub fn retf<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     require_eof!(interpreter);
     gas!(interpreter, gas::RETF_GAS);
@@ -125,6 +136,7 @@ pub fn retf<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     interpreter.load_eof_code(fframe.idx, fframe.pc);
 }
 
+#[use_dyn_host]
 pub fn jumpf<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     require_eof!(interpreter);
     gas!(interpreter, gas::LOW);
@@ -147,6 +159,7 @@ pub fn jumpf<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     interpreter.load_eof_code(idx, 0)
 }
 
+#[use_dyn_host]
 pub fn pc<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::BASE);
     // - 1 because we have already advanced the instruction pointer in `Interpreter::step`
@@ -177,27 +190,32 @@ fn return_inner(interpreter: &mut Interpreter, instruction_result: InstructionRe
     };
 }
 
+#[use_dyn_host]
 pub fn ret<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     return_inner(interpreter, InstructionResult::Return);
 }
 
 /// EIP-140: REVERT instruction
+#[use_dyn_host]
 pub fn revert<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, _host: &mut H) {
     check!(interpreter, BYZANTIUM);
     return_inner(interpreter, InstructionResult::Revert);
 }
 
 /// Stop opcode. This opcode halts the execution.
+#[use_dyn_host]
 pub fn stop<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     interpreter.instruction_result = InstructionResult::Stop;
 }
 
 /// Invalid opcode. This opcode halts the execution.
+#[use_dyn_host]
 pub fn invalid<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     interpreter.instruction_result = InstructionResult::InvalidEFOpcode;
 }
 
 /// Unknown opcode. This opcode halts the execution.
+#[use_dyn_host]
 pub fn unknown<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     interpreter.instruction_result = InstructionResult::OpcodeNotFound;
 }

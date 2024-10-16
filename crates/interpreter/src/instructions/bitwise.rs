@@ -6,66 +6,80 @@ use crate::{
 };
 use core::cmp::Ordering;
 
+use dynamic_host_macro::use_dyn_host;
+
+
+#[use_dyn_host]
 pub fn lt<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::VERYLOW);
     pop_top!(interpreter, op1, op2);
     *op2 = U256::from(op1 < *op2);
 }
 
+#[use_dyn_host]
 pub fn gt<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::VERYLOW);
     pop_top!(interpreter, op1, op2);
     *op2 = U256::from(op1 > *op2);
 }
 
+#[use_dyn_host]
 pub fn slt<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::VERYLOW);
     pop_top!(interpreter, op1, op2);
     *op2 = U256::from(i256_cmp(&op1, op2) == Ordering::Less);
 }
 
+#[use_dyn_host]
 pub fn sgt<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::VERYLOW);
     pop_top!(interpreter, op1, op2);
     *op2 = U256::from(i256_cmp(&op1, op2) == Ordering::Greater);
 }
 
+#[use_dyn_host]
 pub fn eq<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::VERYLOW);
     pop_top!(interpreter, op1, op2);
     *op2 = U256::from(op1 == *op2);
 }
 
+#[use_dyn_host]
 pub fn iszero<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::VERYLOW);
     pop_top!(interpreter, op1);
     *op1 = U256::from(*op1 == U256::ZERO);
 }
 
+#[use_dyn_host]
 pub fn bitand<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::VERYLOW);
     pop_top!(interpreter, op1, op2);
     *op2 = op1 & *op2;
 }
 
+#[use_dyn_host]
 pub fn bitor<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::VERYLOW);
     pop_top!(interpreter, op1, op2);
     *op2 = op1 | *op2;
 }
 
+#[use_dyn_host]
 pub fn bitxor<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::VERYLOW);
     pop_top!(interpreter, op1, op2);
     *op2 = op1 ^ *op2;
 }
 
+#[use_dyn_host]
 pub fn not<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::VERYLOW);
     pop_top!(interpreter, op1);
     *op1 = !*op1;
 }
 
+#[use_dyn_host]
 pub fn byte<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::VERYLOW);
     pop_top!(interpreter, op1, op2);
@@ -80,6 +94,7 @@ pub fn byte<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
 }
 
 /// EIP-145: Bitwise shifting instructions in EVM
+#[use_dyn_host]
 pub fn shl<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, _host: &mut H) {
     check!(interpreter, CONSTANTINOPLE);
     gas!(interpreter, gas::VERYLOW);
@@ -93,6 +108,7 @@ pub fn shl<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, _host: &
 }
 
 /// EIP-145: Bitwise shifting instructions in EVM
+#[use_dyn_host]
 pub fn shr<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, _host: &mut H) {
     check!(interpreter, CONSTANTINOPLE);
     gas!(interpreter, gas::VERYLOW);
@@ -106,6 +122,7 @@ pub fn shr<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, _host: &
 }
 
 /// EIP-145: Bitwise shifting instructions in EVM
+#[use_dyn_host]
 pub fn sar<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, _host: &mut H) {
     check!(interpreter, CONSTANTINOPLE);
     gas!(interpreter, gas::VERYLOW);

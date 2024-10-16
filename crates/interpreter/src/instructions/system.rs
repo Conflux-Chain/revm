@@ -4,7 +4,10 @@ use crate::{
     Host, InstructionResult, Interpreter,
 };
 use core::ptr;
+use dynamic_host_macro::use_dyn_host;
 
+
+#[use_dyn_host]
 pub fn keccak256<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     pop_top!(interpreter, offset, len_ptr);
     let len = as_usize_or_fail!(interpreter, len_ptr);
@@ -19,16 +22,19 @@ pub fn keccak256<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H)
     *len_ptr = hash.into();
 }
 
+#[use_dyn_host]
 pub fn address<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::BASE);
     push_b256!(interpreter, interpreter.contract.target_address.into_word());
 }
 
+#[use_dyn_host]
 pub fn caller<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::BASE);
     push_b256!(interpreter, interpreter.contract.caller.into_word());
 }
 
+#[use_dyn_host]
 pub fn codesize<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::BASE);
     // Inform the optimizer that the bytecode cannot be EOF to remove a bounds check.
@@ -36,6 +42,7 @@ pub fn codesize<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) 
     push!(interpreter, U256::from(interpreter.contract.bytecode.len()));
 }
 
+#[use_dyn_host]
 pub fn codecopy<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     pop!(interpreter, memory_offset, code_offset, len);
     let len = as_usize_or_fail!(interpreter, len);
@@ -58,6 +65,7 @@ pub fn codecopy<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) 
     );
 }
 
+#[use_dyn_host]
 pub fn calldataload<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::VERYLOW);
     pop_top!(interpreter, offset_ptr);
@@ -81,16 +89,19 @@ pub fn calldataload<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut
     *offset_ptr = word.into();
 }
 
+#[use_dyn_host]
 pub fn calldatasize<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::BASE);
     push!(interpreter, U256::from(interpreter.contract.input.len()));
 }
 
+#[use_dyn_host]
 pub fn callvalue<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::BASE);
     push!(interpreter, interpreter.contract.call_value);
 }
 
+#[use_dyn_host]
 pub fn calldatacopy<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     pop!(interpreter, memory_offset, data_offset, len);
     let len = as_usize_or_fail!(interpreter, len);
@@ -112,6 +123,7 @@ pub fn calldatacopy<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut
 }
 
 /// EIP-211: New opcodes: RETURNDATASIZE and RETURNDATACOPY
+#[use_dyn_host]
 pub fn returndatasize<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, _host: &mut H) {
     check!(interpreter, BYZANTIUM);
     gas!(interpreter, gas::BASE);
@@ -122,6 +134,7 @@ pub fn returndatasize<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interprete
 }
 
 /// EIP-211: New opcodes: RETURNDATASIZE and RETURNDATACOPY
+#[use_dyn_host]
 pub fn returndatacopy<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, _host: &mut H) {
     check!(interpreter, BYZANTIUM);
     pop!(interpreter, memory_offset, offset, len);
@@ -158,6 +171,7 @@ pub fn returndatacopy<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interprete
 }
 
 /// Part of EOF `<https://eips.ethereum.org/EIPS/eip-7069>`.
+#[use_dyn_host]
 pub fn returndataload<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     require_eof!(interpreter);
     gas!(interpreter, gas::VERYLOW);
@@ -179,6 +193,7 @@ pub fn returndataload<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &m
     *offset = B256::from(output).into();
 }
 
+#[use_dyn_host]
 pub fn gas<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::BASE);
     push!(interpreter, U256::from(interpreter.gas.remaining()));

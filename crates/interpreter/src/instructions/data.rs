@@ -6,6 +6,10 @@ use crate::{
     Host,
 };
 
+use dynamic_host_macro::use_dyn_host;
+
+
+#[use_dyn_host]
 pub fn data_load<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     require_eof!(interpreter);
     gas!(interpreter, DATA_LOAD_GAS);
@@ -26,6 +30,7 @@ pub fn data_load<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H)
     *offset = U256::from_be_bytes(word);
 }
 
+#[use_dyn_host]
 pub fn data_loadn<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     require_eof!(interpreter);
     gas!(interpreter, VERYLOW);
@@ -47,6 +52,7 @@ pub fn data_loadn<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H
     interpreter.instruction_pointer = unsafe { interpreter.instruction_pointer.offset(2) };
 }
 
+#[use_dyn_host]
 pub fn data_size<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     require_eof!(interpreter);
     gas!(interpreter, BASE);
@@ -55,6 +61,7 @@ pub fn data_size<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H)
     push!(interpreter, U256::from(data_size));
 }
 
+#[use_dyn_host]
 pub fn data_copy<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     require_eof!(interpreter);
     gas!(interpreter, VERYLOW);

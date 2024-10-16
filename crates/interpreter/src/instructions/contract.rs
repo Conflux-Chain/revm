@@ -13,8 +13,11 @@ use crate::{
 };
 use core::cmp::max;
 use std::boxed::Box;
+use dynamic_host_macro::use_dyn_host;
+
 
 /// EOF Create instruction
+#[use_dyn_host]
 pub fn eofcreate<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     require_eof!(interpreter);
     gas!(interpreter, EOF_CREATE_GAS);
@@ -81,6 +84,7 @@ pub fn eofcreate<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H)
     interpreter.instruction_pointer = unsafe { interpreter.instruction_pointer.offset(1) };
 }
 
+#[use_dyn_host]
 pub fn return_contract<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     require_init_eof!(interpreter);
     let deploy_container_index = unsafe { *interpreter.instruction_pointer };
@@ -195,6 +199,7 @@ pub fn extcall_gas_calc<H: Host + ?Sized>(
     Some(gas_limit)
 }
 
+#[use_dyn_host]
 pub fn extcall<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
     require_eof!(interpreter);
     pop_address!(interpreter, target_address);
@@ -232,6 +237,7 @@ pub fn extcall<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host
     interpreter.instruction_result = InstructionResult::CallOrCreate;
 }
 
+#[use_dyn_host]
 pub fn extdelegatecall<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
     require_eof!(interpreter);
     pop_address!(interpreter, target_address);
@@ -267,6 +273,7 @@ pub fn extdelegatecall<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpret
     interpreter.instruction_result = InstructionResult::CallOrCreate;
 }
 
+#[use_dyn_host]
 pub fn extstaticcall<H: Host + ?Sized>(interpreter: &mut Interpreter, host: &mut H) {
     require_eof!(interpreter);
     pop_address!(interpreter, target_address);
@@ -300,6 +307,7 @@ pub fn extstaticcall<H: Host + ?Sized>(interpreter: &mut Interpreter, host: &mut
     interpreter.instruction_result = InstructionResult::CallOrCreate;
 }
 
+#[use_dyn_host]
 pub fn create<const IS_CREATE2: bool, H: Host + ?Sized, SPEC: Spec>(
     interpreter: &mut Interpreter,
     host: &mut H,
@@ -370,6 +378,7 @@ pub fn create<const IS_CREATE2: bool, H: Host + ?Sized, SPEC: Spec>(
     interpreter.instruction_result = InstructionResult::CallOrCreate;
 }
 
+#[use_dyn_host]
 pub fn call<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
     pop!(interpreter, local_gas_limit);
     pop_address!(interpreter, to);
@@ -426,6 +435,7 @@ pub fn call<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &
     interpreter.instruction_result = InstructionResult::CallOrCreate;
 }
 
+#[use_dyn_host]
 pub fn call_code<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
     pop!(interpreter, local_gas_limit);
     pop_address!(interpreter, to);
@@ -477,6 +487,7 @@ pub fn call_code<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, ho
     interpreter.instruction_result = InstructionResult::CallOrCreate;
 }
 
+#[use_dyn_host]
 pub fn delegate_call<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
     check!(interpreter, HOMESTEAD);
     pop!(interpreter, local_gas_limit);
@@ -518,6 +529,7 @@ pub fn delegate_call<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter
     interpreter.instruction_result = InstructionResult::CallOrCreate;
 }
 
+#[use_dyn_host]
 pub fn static_call<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
     check!(interpreter, BYZANTIUM);
     pop!(interpreter, local_gas_limit);

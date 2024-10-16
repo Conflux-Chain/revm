@@ -5,24 +5,30 @@ use crate::{
     Host, Interpreter,
 };
 
+use dynamic_host_macro::use_dyn_host;
+
+#[use_dyn_host]
 pub fn add<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::VERYLOW);
     pop_top!(interpreter, op1, op2);
     *op2 = op1.wrapping_add(*op2);
 }
 
+#[use_dyn_host]
 pub fn mul<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::LOW);
     pop_top!(interpreter, op1, op2);
     *op2 = op1.wrapping_mul(*op2);
 }
 
+#[use_dyn_host]
 pub fn sub<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::VERYLOW);
     pop_top!(interpreter, op1, op2);
     *op2 = op1.wrapping_sub(*op2);
 }
 
+#[use_dyn_host]
 pub fn div<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::LOW);
     pop_top!(interpreter, op1, op2);
@@ -31,12 +37,14 @@ pub fn div<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     }
 }
 
+#[use_dyn_host]
 pub fn sdiv<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::LOW);
     pop_top!(interpreter, op1, op2);
     *op2 = i256_div(op1, *op2);
 }
 
+#[use_dyn_host]
 pub fn rem<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::LOW);
     pop_top!(interpreter, op1, op2);
@@ -45,24 +53,28 @@ pub fn rem<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     }
 }
 
+#[use_dyn_host]
 pub fn smod<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::LOW);
     pop_top!(interpreter, op1, op2);
     *op2 = i256_mod(op1, *op2)
 }
 
+#[use_dyn_host]
 pub fn addmod<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::MID);
     pop_top!(interpreter, op1, op2, op3);
     *op3 = op1.add_mod(op2, *op3)
 }
 
+#[use_dyn_host]
 pub fn mulmod<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::MID);
     pop_top!(interpreter, op1, op2, op3);
     *op3 = op1.mul_mod(op2, *op3)
 }
 
+#[use_dyn_host]
 pub fn exp<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, _host: &mut H) {
     pop_top!(interpreter, op1, op2);
     gas_or_fail!(interpreter, gas::exp_cost(SPEC::SPEC_ID, *op2));
@@ -84,6 +96,7 @@ pub fn exp<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, _host: &
 /// `y | !mask` where `|` is the bitwise `OR` and `!` is bitwise negation. Similarly, if
 /// `b == 0` then the yellow paper says the output should start with all zeros, then end with
 /// bits from `b`; this is equal to `y & mask` where `&` is bitwise `AND`.
+#[use_dyn_host]
 pub fn signextend<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::LOW);
     pop_top!(interpreter, ext, x);

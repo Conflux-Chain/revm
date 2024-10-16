@@ -5,40 +5,40 @@ use crate::{instructions::control, primitives::Spec, Host, Interpreter};
 use std::boxed::Box;
 
 /// EVM opcode function signature.
-pub type Instruction<H> = fn(&mut Interpreter, &mut H);
+pub type Instruction = for<'h> fn(&mut Interpreter, &mut (dyn 'h + Host));
 
 /// Instruction table is list of instruction function pointers mapped to 256 EVM opcodes.
-pub type InstructionTable<H> = [Instruction<H>; 256];
+pub type InstructionTable = [Instruction; 256];
 
 /// EVM dynamic opcode function signature.
-pub type DynInstruction<'a, H> = dyn Fn(&mut Interpreter, &mut H) + 'a;
+pub type DynInstruction<'a> = dyn for<'h> Fn(&mut Interpreter, &mut (dyn 'h + Host)) + 'a;
 
 /// EVM boxed dynamic opcode function signature.
-pub type BoxedInstruction<'a, H> = Box<DynInstruction<'a, H>>;
+pub type BoxedInstruction<'a> = Box<DynInstruction<'a>>;
 
 /// A table of boxed instructions.
-pub type BoxedInstructionTable<'a, H> = [BoxedInstruction<'a, H>; 256];
+pub type BoxedInstructionTable<'a> = [BoxedInstruction<'a>; 256];
 
 /// Either a plain, static instruction table, or a boxed, dynamic instruction table.
 ///
 /// Note that `Plain` variant is about 10-20% faster in Interpreter execution.
-pub enum InstructionTables<'a, H: ?Sized> {
-    Plain(InstructionTable<H>),
-    Boxed(BoxedInstructionTable<'a, H>),
+pub enum InstructionTables<'a> {
+    Plain(InstructionTable),
+    Boxed(BoxedInstructionTable<'a>),
 }
 
-impl<'a, H: Host + ?Sized> InstructionTables<'a, H> {
+impl<'a> InstructionTables<'a> {
     /// Creates a plain instruction table for the given spec. See [`make_instruction_table`].
     #[inline]
     pub const fn new_plain<SPEC: Spec>() -> Self {
-        Self::Plain(make_instruction_table::<H, SPEC>())
+        Self::Plain(make_instruction_table::<SPEC>())
     }
 }
 
-impl<'a, H: Host + ?Sized + 'a> InstructionTables<'a, H> {
+impl<'a> InstructionTables<'a> {
     /// Inserts the instruction into the table with the specified index.
     #[inline]
-    pub fn insert(&mut self, opcode: u8, instruction: Instruction<H>) {
+    pub fn insert(&mut self, opcode: u8, instruction: Instruction) {
         match self {
             Self::Plain(table) => table[opcode as usize] = instruction,
             Self::Boxed(table) => table[opcode as usize] = Box::new(instruction),
@@ -48,16 +48,16 @@ impl<'a, H: Host + ?Sized + 'a> InstructionTables<'a, H> {
     /// Converts the current instruction table to a boxed variant if it is not already, and returns
     /// a mutable reference to the boxed table.
     #[inline]
-    pub fn to_boxed(&mut self) -> &mut BoxedInstructionTable<'a, H> {
+    pub fn to_boxed(&mut self) -> &mut BoxedInstructionTable<'a> {
         self.to_boxed_with(|i| Box::new(i))
     }
 
     /// Converts the current instruction table to a boxed variant if it is not already with `f`,
     /// and returns a mutable reference to the boxed table.
     #[inline]
-    pub fn to_boxed_with<F>(&mut self, f: F) -> &mut BoxedInstructionTable<'a, H>
+    pub fn to_boxed_with<F>(&mut self, f: F) -> &mut BoxedInstructionTable<'a>
     where
-        F: FnMut(Instruction<H>) -> BoxedInstruction<'a, H>,
+        F: FnMut(Instruction) -> BoxedInstruction<'a>,
     {
         match self {
             Self::Plain(_) => self.to_boxed_with_slow(f),
@@ -66,9 +66,9 @@ impl<'a, H: Host + ?Sized + 'a> InstructionTables<'a, H> {
     }
 
     #[cold]
-    fn to_boxed_with_slow<F>(&mut self, f: F) -> &mut BoxedInstructionTable<'a, H>
+    fn to_boxed_with_slow<F>(&mut self, f: F) -> &mut BoxedInstructionTable<'a>
     where
-        F: FnMut(Instruction<H>) -> BoxedInstruction<'a, H>,
+        F: FnMut(Instruction) -> BoxedInstruction<'a>,
     {
         let Self::Plain(table) = self else {
             unreachable!()
@@ -82,13 +82,13 @@ impl<'a, H: Host + ?Sized + 'a> InstructionTables<'a, H> {
 
     /// Returns a mutable reference to the boxed instruction at the specified index.
     #[inline]
-    pub fn get_boxed(&mut self, opcode: u8) -> &mut BoxedInstruction<'a, H> {
+    pub fn get_boxed(&mut self, opcode: u8) -> &mut BoxedInstruction<'a> {
         &mut self.to_boxed()[opcode as usize]
     }
 
     /// Inserts a boxed instruction into the table at the specified index.
     #[inline]
-    pub fn insert_boxed(&mut self, opcode: u8, instruction: BoxedInstruction<'a, H>) {
+    pub fn insert_boxed(&mut self, opcode: u8, instruction: BoxedInstruction<'a>) {
         *self.get_boxed(opcode) = instruction;
     }
 
@@ -98,8 +98,8 @@ impl<'a, H: Host + ?Sized + 'a> InstructionTables<'a, H> {
     pub fn replace_boxed(
         &mut self,
         opcode: u8,
-        instruction: BoxedInstruction<'a, H>,
-    ) -> BoxedInstruction<'a, H> {
+        instruction: BoxedInstruction<'a>,
+    ) -> BoxedInstruction<'a> {
         core::mem::replace(self.get_boxed(opcode), instruction)
     }
 
@@ -107,7 +107,7 @@ impl<'a, H: Host + ?Sized + 'a> InstructionTables<'a, H> {
     #[inline]
     pub fn update_boxed<F>(&mut self, opcode: u8, f: F)
     where
-        F: Fn(&DynInstruction<'a, H>, &mut Interpreter, &mut H) + 'a,
+        F: for<'h> Fn(&DynInstruction<'a>, &mut Interpreter, &mut (dyn 'h + Host)) + 'a,
     {
         update_boxed_instruction(self.get_boxed(opcode), f)
     }
@@ -116,7 +116,7 @@ impl<'a, H: Host + ?Sized + 'a> InstructionTables<'a, H> {
     #[inline]
     pub fn update_all<F>(&mut self, f: F)
     where
-        F: Fn(&DynInstruction<'a, H>, &mut Interpreter, &mut H) + Copy + 'a,
+    F: for<'h> Fn(&DynInstruction<'a>, &mut Interpreter, &mut (dyn 'h + Host)) + Copy +'a,
     {
         // Don't go through `to_boxed` to avoid allocating the plain table twice.
         match self {
@@ -132,46 +132,43 @@ impl<'a, H: Host + ?Sized + 'a> InstructionTables<'a, H> {
 
 /// Make instruction table.
 #[inline]
-pub const fn make_instruction_table<H: Host + ?Sized, SPEC: Spec>() -> InstructionTable<H> {
+pub const fn make_instruction_table<SPEC: Spec>() -> InstructionTable {
     // Force const-eval of the table creation, making this function trivial.
     // TODO: Replace this with a `const {}` block once it is stable.
-    struct ConstTable<H: Host + ?Sized, SPEC: Spec> {
-        _host: core::marker::PhantomData<H>,
+    struct ConstTable<SPEC: Spec> {
         _spec: core::marker::PhantomData<SPEC>,
     }
-    impl<H: Host + ?Sized, SPEC: Spec> ConstTable<H, SPEC> {
-        const NEW: InstructionTable<H> = {
-            let mut tables: InstructionTable<H> = [control::unknown; 256];
+    impl<SPEC: Spec> ConstTable<SPEC> {
+        const NEW: InstructionTable = {
+            let mut tables: InstructionTable = [control::unknown; 256];
             let mut i = 0;
             while i < 256 {
-                tables[i] = instruction::<H, SPEC>(i as u8);
+                tables[i] = instruction::<SPEC>(i as u8);
                 i += 1;
             }
             tables
         };
     }
-    ConstTable::<H, SPEC>::NEW
+    ConstTable::<SPEC>::NEW
 }
 
 /// Make boxed instruction table that calls `f` closure for every instruction.
 #[inline]
-pub fn make_boxed_instruction_table<'a, H, FN>(
-    table: &InstructionTable<H>,
+pub fn make_boxed_instruction_table<'a, FN>(
+    table: &InstructionTable,
     mut f: FN,
-) -> BoxedInstructionTable<'a, H>
+) -> BoxedInstructionTable<'a>
 where
-    H: Host + ?Sized,
-    FN: FnMut(Instruction<H>) -> BoxedInstruction<'a, H>,
+    FN: FnMut(Instruction) -> BoxedInstruction<'a>,
 {
     core::array::from_fn(|i| f(table[i]))
 }
 
 /// Updates a boxed instruction with a new one.
 #[inline]
-pub fn update_boxed_instruction<'a, H, F>(instruction: &mut BoxedInstruction<'a, H>, f: F)
+pub fn update_boxed_instruction<'a, F>(instruction: &mut BoxedInstruction<'a>, f: F)
 where
-    H: Host + ?Sized + 'a,
-    F: Fn(&DynInstruction<'a, H>, &mut Interpreter, &mut H) + 'a,
+    F: for<'h> Fn(&DynInstruction<'a>, &mut Interpreter, &mut (dyn 'h + Host)) + 'a,
 {
     // NOTE: This first allocation gets elided by the compiler.
     let prev = core::mem::replace(instruction, Box::new(|_, _| {}));

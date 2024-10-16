@@ -18,6 +18,8 @@ use revm_primitives::{Bytecode, Eof, U256};
 use std::borrow::ToOwned;
 use std::sync::Arc;
 
+use dynamic_host_macro::use_dyn_host;
+
 /// EVM bytecode interpreter.
 #[derive(Debug)]
 pub struct Interpreter {
@@ -340,9 +342,9 @@ impl Interpreter {
     ///
     /// Internally it will increment instruction pointer by one.
     #[inline]
-    pub(crate) fn step<FN, H: Host + ?Sized>(&mut self, instruction_table: &[FN; 256], host: &mut H)
+    pub(crate) fn step<FN>(&mut self, instruction_table: &[FN; 256], host: &mut dyn Host)
     where
-        FN: Fn(&mut Interpreter, &mut H),
+        FN: for<'h> Fn(&mut Interpreter, &mut (dyn 'h + Host)),
     {
         // Get current opcode.
         let opcode = unsafe { *self.instruction_pointer };
@@ -362,14 +364,15 @@ impl Interpreter {
     }
 
     /// Executes the interpreter until it returns or stops.
-    pub fn run<FN, H: Host + ?Sized>(
+    #[use_dyn_host]
+    pub fn run<FN>(
         &mut self,
         shared_memory: SharedMemory,
         instruction_table: &[FN; 256],
-        host: &mut H,
+        host: &mut dyn Host,
     ) -> InterpreterAction
     where
-        FN: Fn(&mut Interpreter, &mut H),
+        FN: for<'h> Fn(&mut Interpreter, &mut (dyn 'h +Host)),
     {
         self.next_action = InterpreterAction::None;
         self.shared_memory = shared_memory;

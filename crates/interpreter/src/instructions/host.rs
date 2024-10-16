@@ -6,7 +6,9 @@ use crate::{
 };
 use core::cmp::min;
 use std::vec::Vec;
+use dynamic_host_macro::use_dyn_host;
 
+#[use_dyn_host]
 pub fn balance<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
     pop_address!(interpreter, address);
     let Some((balance, is_cold)) = host.balance(address) else {
@@ -30,6 +32,7 @@ pub fn balance<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host
 }
 
 /// EIP-1884: Repricing for trie-size-dependent opcodes
+#[use_dyn_host]
 pub fn selfbalance<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
     check!(interpreter, ISTANBUL);
     gas!(interpreter, gas::LOW);
@@ -40,6 +43,7 @@ pub fn selfbalance<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, 
     push!(interpreter, balance);
 }
 
+#[use_dyn_host]
 pub fn extcodesize<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
     pop_address!(interpreter, address);
     let Some((code, is_cold)) = host.code(address) else {
@@ -58,6 +62,7 @@ pub fn extcodesize<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, 
 }
 
 /// EIP-1052: EXTCODEHASH opcode
+#[use_dyn_host]
 pub fn extcodehash<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
     check!(interpreter, CONSTANTINOPLE);
     pop_address!(interpreter, address);
@@ -75,6 +80,7 @@ pub fn extcodehash<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, 
     push_b256!(interpreter, code_hash);
 }
 
+#[use_dyn_host]
 pub fn extcodecopy<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
     pop_address!(interpreter, address);
     pop!(interpreter, memory_offset, code_offset, len_u256);
@@ -102,6 +108,7 @@ pub fn extcodecopy<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, 
         .set_data(memory_offset, code_offset, len, &code);
 }
 
+#[use_dyn_host]
 pub fn blockhash<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
     gas!(interpreter, gas::BLOCKHASH);
     pop_top!(interpreter, number);
@@ -113,6 +120,7 @@ pub fn blockhash<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, ho
     *number = U256::from_be_bytes(hash.0);
 }
 
+#[use_dyn_host]
 pub fn sload<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
     pop_top!(interpreter, index);
     let Some((value, is_cold)) = host.sload(interpreter.contract.target_address, *index) else {
@@ -123,6 +131,7 @@ pub fn sload<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: 
     *index = value;
 }
 
+#[use_dyn_host]
 pub fn sstore<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
     require_non_staticcall!(interpreter);
 
@@ -149,6 +158,7 @@ pub fn sstore<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host:
 
 /// EIP-1153: Transient storage opcodes
 /// Store value to transient storage
+#[use_dyn_host]
 pub fn tstore<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
     check!(interpreter, CANCUN);
     require_non_staticcall!(interpreter);
@@ -161,6 +171,7 @@ pub fn tstore<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host:
 
 /// EIP-1153: Transient storage opcodes
 /// Load value from transient storage
+#[use_dyn_host]
 pub fn tload<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
     check!(interpreter, CANCUN);
     gas!(interpreter, gas::WARM_STORAGE_READ_COST);
@@ -170,6 +181,7 @@ pub fn tload<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: 
     *index = host.tload(interpreter.contract.target_address, *index);
 }
 
+#[use_dyn_host]
 pub fn log<const N: usize, H: Host + ?Sized>(interpreter: &mut Interpreter, host: &mut H) {
     require_non_staticcall!(interpreter);
 
@@ -203,6 +215,7 @@ pub fn log<const N: usize, H: Host + ?Sized>(interpreter: &mut Interpreter, host
     host.log(log);
 }
 
+#[use_dyn_host]
 pub fn selfdestruct<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
     require_non_staticcall!(interpreter);
     pop_address!(interpreter, target);

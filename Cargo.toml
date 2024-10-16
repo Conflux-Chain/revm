@@ -1,14 +1,11 @@
 [workspace]
 members = [
-    "bins/revme",
-    "bins/revm-test",
-    "crates/revm",
     "crates/primitives",
     "crates/interpreter",
-    "crates/precompile",
+    "crates/dynamic_host_macro",
 ]
 resolver = "2"
-default-members = ["crates/revm"]
+default-members = ["crates/interpreter"]
 
 [workspace.metadata.docs.rs]
 all-features = true

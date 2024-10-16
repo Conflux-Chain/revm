@@ -5,6 +5,10 @@ use crate::{
 };
 use core::cmp::max;
 
+use dynamic_host_macro::use_dyn_host;
+
+
+#[use_dyn_host]
 pub fn mload<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::VERYLOW);
     pop_top!(interpreter, top);
@@ -13,6 +17,7 @@ pub fn mload<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     *top = interpreter.shared_memory.get_u256(offset);
 }
 
+#[use_dyn_host]
 pub fn mstore<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::VERYLOW);
     pop!(interpreter, offset, value);
@@ -21,6 +26,7 @@ pub fn mstore<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     interpreter.shared_memory.set_u256(offset, value);
 }
 
+#[use_dyn_host]
 pub fn mstore8<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::VERYLOW);
     pop!(interpreter, offset, value);
@@ -29,12 +35,14 @@ pub fn mstore8<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     interpreter.shared_memory.set_byte(offset, value.byte(0))
 }
 
+#[use_dyn_host]
 pub fn msize<H: Host + ?Sized>(interpreter: &mut Interpreter, _host: &mut H) {
     gas!(interpreter, gas::BASE);
     push!(interpreter, U256::from(interpreter.shared_memory.len()));
 }
 
 // EIP-5656: MCOPY - Memory copying instruction
+#[use_dyn_host]
 pub fn mcopy<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, _host: &mut H) {
     check!(interpreter, CANCUN);
     pop!(interpreter, dst, src, len);
