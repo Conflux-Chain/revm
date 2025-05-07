@@ -7,6 +7,95 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.0](https://github.com/Conflux-Chain/revm/compare/op-revm-v3.0.2...op-revm-v3.1.0) - 2025-05-07
+
+### Added
+
+- *(Osaka)* disable EOF ([#2480](https://github.com/Conflux-Chain/revm/pull/2480))
+- skip cloning of call input from shared memory ([#2462](https://github.com/Conflux-Chain/revm/pull/2462))
+- *(Handler)* merge state validation with deduct_caller ([#2460](https://github.com/Conflux-Chain/revm/pull/2460))
+- *(tx)* Add Either RecoveredAuthorization ([#2448](https://github.com/Conflux-Chain/revm/pull/2448))
+- add precompiles getter to OpPrecompiles ([#2444](https://github.com/Conflux-Chain/revm/pull/2444))
+- *(EOF)* Changes needed for devnet-1 ([#2377](https://github.com/Conflux-Chain/revm/pull/2377))
+- *(docs)* MyEvm example and book cleanup ([#2218](https://github.com/Conflux-Chain/revm/pull/2218))
+- remove specification crate ([#2165](https://github.com/Conflux-Chain/revm/pull/2165))
+- book structure ([#2082](https://github.com/Conflux-Chain/revm/pull/2082))
+- *(examples)* generate block traces ([#895](https://github.com/Conflux-Chain/revm/pull/895))
+- implement EIP-4844 ([#668](https://github.com/Conflux-Chain/revm/pull/668))
+- *(Shanghai)* All EIPs: push0, warm coinbase, limit/measure initcode ([#376](https://github.com/Conflux-Chain/revm/pull/376))
+- Migrate `primitive_types::U256` to `ruint::Uint<256, 4>` ([#239](https://github.com/Conflux-Chain/revm/pull/239))
+- Introduce ByteCode format, Update Readme ([#156](https://github.com/Conflux-Chain/revm/pull/156))
+
+### Fixed
+
+- fix typo and update links ([#2387](https://github.com/Conflux-Chain/revm/pull/2387))
+- fix typos ([#620](https://github.com/Conflux-Chain/revm/pull/620))
+
+### Other
+
+- *(op)* Set l2 block num in reloaded isthmus l1 block info ([#2465](https://github.com/Conflux-Chain/revm/pull/2465))
+- Add clones to FrameData ([#2482](https://github.com/Conflux-Chain/revm/pull/2482))
+- *(op)* Add test for verifying default OpSpecId update ([#2478](https://github.com/Conflux-Chain/revm/pull/2478))
+- copy edit The Book ([#2463](https://github.com/Conflux-Chain/revm/pull/2463))
+- bump dependency version ([#2431](https://github.com/Conflux-Chain/revm/pull/2431))
+- fixed broken link ([#2421](https://github.com/Conflux-Chain/revm/pull/2421))
+- backport from release branch ([#2415](https://github.com/Conflux-Chain/revm/pull/2415)) ([#2416](https://github.com/Conflux-Chain/revm/pull/2416))
+- links to main readme ([#2298](https://github.com/Conflux-Chain/revm/pull/2298))
+- add links to arch page ([#2297](https://github.com/Conflux-Chain/revm/pull/2297))
+- tag v63 revm v20.0.0-alpha.6 ([#2219](https://github.com/Conflux-Chain/revm/pull/2219))
+- rename revm-optimism to op-revm ([#2141](https://github.com/Conflux-Chain/revm/pull/2141))
+- fix README link ([#2139](https://github.com/Conflux-Chain/revm/pull/2139))
+- *(readme)* add tycho-simulation to "Used by" ([#1926](https://github.com/Conflux-Chain/revm/pull/1926))
+- Update README.md examples section ([#1853](https://github.com/Conflux-Chain/revm/pull/1853))
+- Bump new logo ([#1735](https://github.com/Conflux-Chain/revm/pull/1735))
+- *(README)* add rbuilder to used-by ([#1585](https://github.com/Conflux-Chain/revm/pull/1585))
+- added simular to used-by ([#1521](https://github.com/Conflux-Chain/revm/pull/1521))
+- add Trin to used by list ([#1393](https://github.com/Conflux-Chain/revm/pull/1393))
+- Fix typo in readme ([#1185](https://github.com/Conflux-Chain/revm/pull/1185))
+- Add Hardhat to the "Used by" list ([#1164](https://github.com/Conflux-Chain/revm/pull/1164))
+- Add VERBS to used by list ([#1141](https://github.com/Conflux-Chain/revm/pull/1141))
+- license date and revm docs ([#1080](https://github.com/Conflux-Chain/revm/pull/1080))
+- *(docs)* Update the benchmark docs to point to revm package ([#906](https://github.com/Conflux-Chain/revm/pull/906))
+- *(docs)* Update top-level benchmark docs ([#894](https://github.com/Conflux-Chain/revm/pull/894))
+- clang requirement ([#784](https://github.com/Conflux-Chain/revm/pull/784))
+- Readme Updates ([#756](https://github.com/Conflux-Chain/revm/pull/756))
+- Logo ([#743](https://github.com/Conflux-Chain/revm/pull/743))
+- book workflow ([#537](https://github.com/Conflux-Chain/revm/pull/537))
+- add example to revm crate ([#468](https://github.com/Conflux-Chain/revm/pull/468))
+- Update README.md ([#424](https://github.com/Conflux-Chain/revm/pull/424))
+- add no_std to primitives ([#366](https://github.com/Conflux-Chain/revm/pull/366))
+- revm-precompiles to revm-precompile
+- Bump v20, changelog ([#350](https://github.com/Conflux-Chain/revm/pull/350))
+- typos ([#232](https://github.com/Conflux-Chain/revm/pull/232))
+- Add support for old forks. ([#191](https://github.com/Conflux-Chain/revm/pull/191))
+- revm bump 1.8. update libs. snailtracer rename ([#159](https://github.com/Conflux-Chain/revm/pull/159))
+- typo fixes
+- fix readme typo
+- Big Refactor. Machine to Interpreter. refactor instructions. call/create struct ([#52](https://github.com/Conflux-Chain/revm/pull/52))
+- readme. debuger update
+- Bump revm v0.3.0. README updated
+- readme
+- Add time elapsed for tests
+- readme updated
+- Include Basefee into cost calc. readme change
+- Initialize precompile accounts
+- Status update. Taking a break
+- Merkle calc. Tweaks and debugging for eip158
+- Replace aurora bn lib with parity's. All Bn128Add/Mul/Pair tests passes
+- TEMP
+- one tab removed
+- readme
+- README Example simplified
+- Gas calculation for Call/Create. Example Added
+- readme usage
+- README changes
+- Static gas cost added
+- Subroutine changelogs and reverts
+- Readme postulates
+- Spelling
+- Restructure project
+- First iteration. Machine is looking okay
+
 ## [3.0.2](https://github.com/bluealloy/revm/compare/op-revm-v3.0.1...op-revm-v3.0.2) - 2025-04-15
 
 ### Other
