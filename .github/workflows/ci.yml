@@ -31,20 +31,23 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --workspace ${{ matrix.flags }}
 
-  test-no-std:
-    name: test no_std ${{ matrix.features }}
+  check-no-std:
+    name: check no_std ${{ matrix.features }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        features: ["", "optimism"]
+        features: ["", "kzg-rs"]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: riscv32imac-unknown-none-elf
-      - run: cargo check --target riscv32imac-unknown-none-elf --no-default-features --features=${{ matrix.features }}
+      - run: |
+          cargo check --target riscv32imac-unknown-none-elf --no-default-features --features=${{ matrix.features }}
+          cargo check --target riscv32imac-unknown-none-elf -p op-revm --no-default-features --features=${{ matrix.features }}
+          cargo check --target riscv32imac-unknown-none-elf -p revm-database --no-default-features
 
   check:
     name: check ${{ matrix.features }}
@@ -56,9 +59,8 @@ jobs:
         features: ["", "serde", "std"]
     steps:
       - uses: actions/checkout@v4
-      - run: |
-          cd crates/revm
-          cargo check --no-default-features --features=${{ matrix.features }}
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo check --no-default-features -p revm  --features=${{ matrix.features }}
 
   clippy:
     name: clippy
@@ -94,3 +96,26 @@ jobs:
         with:
           components: rustfmt
       - run: cargo fmt --all --check
+  
+  # Check crates correctly propagate features
+  feature-propagation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: run zepter
+        run: |
+          cargo install zepter -f --locked
+          zepter --version
+          time zepter run check
+
+  typos-check:
+    name: TyposCheck
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: crate-ci/typos@v1.22.7
+        with:
+          config: ./typos.toml
+          isolated: true

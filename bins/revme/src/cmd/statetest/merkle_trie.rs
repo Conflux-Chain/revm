@@ -1,10 +1,8 @@
 use alloy_rlp::{RlpEncodable, RlpMaxEncodedLen};
+use database::PlainAccount;
 use hash_db::Hasher;
 use plain_hasher::PlainHasher;
-use revm::{
-    db::PlainAccount,
-    primitives::{keccak256, Address, Log, B256, U256},
-};
+use revm::primitives::{keccak256, Address, Log, B256, U256};
 use triehash::sec_trie_root;
 
 pub fn log_rlp_hash(logs: &[Log]) -> B256 {
@@ -40,7 +38,7 @@ impl TrieAccount {
             root_hash: sec_trie_root::<KeccakHasher, _, _, _>(
                 acc.storage
                     .iter()
-                    .filter(|(_k, &v)| v != U256::ZERO)
+                    .filter(|(_k, &v)| !v.is_zero())
                     .map(|(k, v)| (k.to_be_bytes::<32>(), alloy_rlp::encode_fixed_size(v))),
             ),
             code_hash: acc.info.code_hash,

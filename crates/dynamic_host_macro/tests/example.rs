@@ -12,10 +12,12 @@ fn test_function<H: Host + ?Sized>(interpreter: &mut u32, host: &mut H) {
 }
 
 #[use_dyn_host]
-fn test_function_with_generic<const N: usize, H: Host + ?Sized>(interpreter: &mut u32, host: &mut H) {
+fn test_function_with_generic<const N: usize, H: Host + ?Sized>(
+    interpreter: &mut u32,
+    host: &mut H,
+) {
     host.dummy_method();
     *interpreter += 1;
 }
-
 
 fn main() {}

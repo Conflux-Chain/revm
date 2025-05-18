@@ -1,99 +1,131 @@
 use crate::{
-    gas::{self, warm_cold_cost},
+    gas::{self, warm_cold_cost, CALL_STIPEND},
+    instructions::utility::{IntoAddress, IntoU256},
     interpreter::Interpreter,
-    primitives::{Bytes, Log, LogData, Spec, SpecId::*, B256, U256},
-    Host, InstructionResult, SStoreResult,
+    interpreter_types::{InputsTr, InterpreterTypes, LoopControl, MemoryTr, RuntimeFlag, StackTr},
+    Host, InstructionResult,
 };
 use core::cmp::min;
-use std::vec::Vec;
 use dynamic_host_macro::use_dyn_host;
+use primitives::{hardfork::SpecId::*, Bytes, Log, LogData, B256, BLOCK_HASH_HISTORY, U256};
 
 #[use_dyn_host]
-pub fn balance<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
-    pop_address!(interpreter, address);
-    let Some((balance, is_cold)) = host.balance(address) else {
-        interpreter.instruction_result = InstructionResult::FatalExternalError;
+pub fn balance<WIRE: InterpreterTypes, H: Host + ?Sized>(
+    interpreter: &mut Interpreter<WIRE>,
+    host: &mut H,
+) {
+    popn_top!([], top, interpreter);
+    let address = top.into_address();
+    let Some(balance) = host.balance(address) else {
+        interpreter
+            .control
+            .set_instruction_result(InstructionResult::FatalExternalError);
         return;
     };
+    let spec_id = interpreter.runtime_flag.spec_id();
     gas!(
         interpreter,
-        if SPEC::enabled(BERLIN) {
-            warm_cold_cost(is_cold)
-        } else if SPEC::enabled(ISTANBUL) {
+        if spec_id.is_enabled_in(BERLIN) {
+            warm_cold_cost(balance.is_cold)
+        } else if spec_id.is_enabled_in(ISTANBUL) {
             // EIP-1884: Repricing for trie-size-dependent opcodes
             700
-        } else if SPEC::enabled(TANGERINE) {
+        } else if spec_id.is_enabled_in(TANGERINE) {
             400
         } else {
             20
         }
     );
-    push!(interpreter, balance);
+    *top = balance.data;
 }
 
 /// EIP-1884: Repricing for trie-size-dependent opcodes
 #[use_dyn_host]
-pub fn selfbalance<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
+pub fn selfbalance<WIRE: InterpreterTypes, H: Host + ?Sized>(
+    interpreter: &mut Interpreter<WIRE>,
+    host: &mut H,
+) {
     check!(interpreter, ISTANBUL);
     gas!(interpreter, gas::LOW);
-    let Some((balance, _)) = host.balance(interpreter.contract.target_address) else {
-        interpreter.instruction_result = InstructionResult::FatalExternalError;
+
+    let Some(balance) = host.balance(interpreter.input.target_address()) else {
+        interpreter
+            .control
+            .set_instruction_result(InstructionResult::FatalExternalError);
         return;
     };
-    push!(interpreter, balance);
+    push!(interpreter, balance.data);
 }
 
 #[use_dyn_host]
-pub fn extcodesize<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
-    pop_address!(interpreter, address);
-    let Some((code, is_cold)) = host.code(address) else {
-        interpreter.instruction_result = InstructionResult::FatalExternalError;
+pub fn extcodesize<WIRE: InterpreterTypes, H: Host + ?Sized>(
+    interpreter: &mut Interpreter<WIRE>,
+    host: &mut H,
+) {
+    popn_top!([], top, interpreter);
+    let address = top.into_address();
+    let Some(code) = host.load_account_code(address) else {
+        interpreter
+            .control
+            .set_instruction_result(InstructionResult::FatalExternalError);
         return;
     };
-    if SPEC::enabled(BERLIN) {
-        gas!(interpreter, warm_cold_cost(is_cold));
-    } else if SPEC::enabled(TANGERINE) {
+    let spec_id = interpreter.runtime_flag.spec_id();
+    if spec_id.is_enabled_in(BERLIN) {
+        gas!(interpreter, warm_cold_cost(code.is_cold));
+    } else if spec_id.is_enabled_in(TANGERINE) {
         gas!(interpreter, 700);
     } else {
         gas!(interpreter, 20);
     }
 
-    push!(interpreter, U256::from(code.len()));
+    *top = U256::from(code.len());
 }
 
 /// EIP-1052: EXTCODEHASH opcode
 #[use_dyn_host]
-pub fn extcodehash<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
+pub fn extcodehash<WIRE: InterpreterTypes, H: Host + ?Sized>(
+    interpreter: &mut Interpreter<WIRE>,
+    host: &mut H,
+) {
     check!(interpreter, CONSTANTINOPLE);
-    pop_address!(interpreter, address);
-    let Some((code_hash, is_cold)) = host.code_hash(address) else {
-        interpreter.instruction_result = InstructionResult::FatalExternalError;
+    popn_top!([], top, interpreter);
+    let address = top.into_address();
+    let Some(code_hash) = host.load_account_code_hash(address) else {
+        interpreter
+            .control
+            .set_instruction_result(InstructionResult::FatalExternalError);
         return;
     };
-    if SPEC::enabled(BERLIN) {
-        gas!(interpreter, warm_cold_cost(is_cold));
-    } else if SPEC::enabled(ISTANBUL) {
+    let spec_id = interpreter.runtime_flag.spec_id();
+    if spec_id.is_enabled_in(BERLIN) {
+        gas!(interpreter, warm_cold_cost(code_hash.is_cold));
+    } else if spec_id.is_enabled_in(ISTANBUL) {
         gas!(interpreter, 700);
     } else {
         gas!(interpreter, 400);
     }
-    push_b256!(interpreter, code_hash);
+    *top = code_hash.into_u256();
 }
 
 #[use_dyn_host]
-pub fn extcodecopy<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
-    pop_address!(interpreter, address);
-    pop!(interpreter, memory_offset, code_offset, len_u256);
-
-    let Some((code, is_cold)) = host.code(address) else {
-        interpreter.instruction_result = InstructionResult::FatalExternalError;
+pub fn extcodecopy<WIRE: InterpreterTypes, H: Host + ?Sized>(
+    interpreter: &mut Interpreter<WIRE>,
+    host: &mut H,
+) {
+    popn!([address, memory_offset, code_offset, len_u256], interpreter);
+    let address = address.into_address();
+    let Some(code) = host.load_account_code(address) else {
+        interpreter
+            .control
+            .set_instruction_result(InstructionResult::FatalExternalError);
         return;
     };
 
     let len = as_usize_or_fail!(interpreter, len_u256);
     gas_or_fail!(
         interpreter,
-        gas::extcodecopy_cost(SPEC::SPEC_ID, len as u64, is_cold)
+        gas::extcodecopy_cost(interpreter.runtime_flag.spec_id(), len, code.is_cold)
     );
     if len == 0 {
         return;
@@ -102,90 +134,151 @@ pub fn extcodecopy<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, 
     let code_offset = min(as_usize_saturated!(code_offset), code.len());
     resize_memory!(interpreter, memory_offset, len);
 
-    // Note: this can't panic because we resized memory to fit.
+    // Note: This can't panic because we resized memory to fit.
     interpreter
-        .shared_memory
+        .memory
         .set_data(memory_offset, code_offset, len, &code);
 }
 
 #[use_dyn_host]
-pub fn blockhash<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
+pub fn blockhash<WIRE: InterpreterTypes, H: Host + ?Sized>(
+    interpreter: &mut Interpreter<WIRE>,
+    host: &mut H,
+) {
     gas!(interpreter, gas::BLOCKHASH);
-    pop_top!(interpreter, number);
+    popn_top!([], number, interpreter);
 
-    let Some(hash) = host.block_hash(*number) else {
-        interpreter.instruction_result = InstructionResult::FatalExternalError;
+    let requested_number = as_u64_saturated!(number);
+
+    let block_number = host.block_number();
+
+    let Some(diff) = block_number.checked_sub(requested_number) else {
+        *number = U256::ZERO;
         return;
     };
-    *number = U256::from_be_bytes(hash.0);
+
+    // blockhash should push zero if number is same as current block number.
+    if diff == 0 {
+        *number = U256::ZERO;
+        return;
+    }
+
+    *number = if diff <= BLOCK_HASH_HISTORY {
+        let Some(hash) = host.block_hash(requested_number) else {
+            interpreter
+                .control
+                .set_instruction_result(InstructionResult::FatalExternalError);
+            return;
+        };
+        U256::from_be_bytes(hash.0)
+    } else {
+        U256::ZERO
+    }
 }
 
 #[use_dyn_host]
-pub fn sload<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
-    pop_top!(interpreter, index);
-    let Some((value, is_cold)) = host.sload(interpreter.contract.target_address, *index) else {
-        interpreter.instruction_result = InstructionResult::FatalExternalError;
+pub fn sload<WIRE: InterpreterTypes, H: Host + ?Sized>(
+    interpreter: &mut Interpreter<WIRE>,
+    host: &mut H,
+) {
+    popn_top!([], index, interpreter);
+
+    let Some(value) = host.sload(interpreter.input.target_address(), *index) else {
+        interpreter
+            .control
+            .set_instruction_result(InstructionResult::FatalExternalError);
         return;
     };
-    gas!(interpreter, gas::sload_cost(SPEC::SPEC_ID, is_cold));
-    *index = value;
+
+    gas!(
+        interpreter,
+        gas::sload_cost(interpreter.runtime_flag.spec_id(), value.is_cold)
+    );
+    *index = value.data;
 }
 
 #[use_dyn_host]
-pub fn sstore<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
+pub fn sstore<WIRE: InterpreterTypes, H: Host + ?Sized>(
+    interpreter: &mut Interpreter<WIRE>,
+    host: &mut H,
+) {
     require_non_staticcall!(interpreter);
 
-    pop!(interpreter, index, value);
-    let Some(SStoreResult {
-        original_value: original,
-        present_value: old,
-        new_value: new,
-        is_cold,
-    }) = host.sstore(interpreter.contract.target_address, index, value)
-    else {
-        interpreter.instruction_result = InstructionResult::FatalExternalError;
+    popn!([index, value], interpreter);
+
+    let Some(state_load) = host.sstore(interpreter.input.target_address(), index, value) else {
+        interpreter
+            .control
+            .set_instruction_result(InstructionResult::FatalExternalError);
         return;
     };
-    gas_or_fail!(interpreter, {
-        let remaining_gas = interpreter.gas.remaining();
-        gas::sstore_cost(SPEC::SPEC_ID, original, old, new, remaining_gas, is_cold)
-    });
-    refund!(
+
+    // EIP-1706 Disable SSTORE with gasleft lower than call stipend
+    if interpreter.runtime_flag.spec_id().is_enabled_in(ISTANBUL)
+        && interpreter.control.gas().remaining() <= CALL_STIPEND
+    {
+        interpreter
+            .control
+            .set_instruction_result(InstructionResult::ReentrancySentryOOG);
+        return;
+    }
+    gas!(
         interpreter,
-        gas::sstore_refund(SPEC::SPEC_ID, original, old, new)
+        gas::sstore_cost(
+            interpreter.runtime_flag.spec_id(),
+            &state_load.data,
+            state_load.is_cold
+        )
     );
+
+    interpreter
+        .control
+        .gas_mut()
+        .record_refund(gas::sstore_refund(
+            interpreter.runtime_flag.spec_id(),
+            &state_load.data,
+        ));
 }
 
 /// EIP-1153: Transient storage opcodes
 /// Store value to transient storage
 #[use_dyn_host]
-pub fn tstore<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
+pub fn tstore<WIRE: InterpreterTypes, H: Host + ?Sized>(
+    interpreter: &mut Interpreter<WIRE>,
+    host: &mut H,
+) {
     check!(interpreter, CANCUN);
     require_non_staticcall!(interpreter);
     gas!(interpreter, gas::WARM_STORAGE_READ_COST);
 
-    pop!(interpreter, index, value);
+    popn!([index, value], interpreter);
 
-    host.tstore(interpreter.contract.target_address, index, value);
+    host.tstore(interpreter.input.target_address(), index, value);
 }
 
 /// EIP-1153: Transient storage opcodes
 /// Load value from transient storage
 #[use_dyn_host]
-pub fn tload<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
+pub fn tload<WIRE: InterpreterTypes, H: Host + ?Sized>(
+    interpreter: &mut Interpreter<WIRE>,
+    host: &mut H,
+) {
     check!(interpreter, CANCUN);
     gas!(interpreter, gas::WARM_STORAGE_READ_COST);
 
-    pop_top!(interpreter, index);
+    popn_top!([], index, interpreter);
 
-    *index = host.tload(interpreter.contract.target_address, *index);
+    *index = host.tload(interpreter.input.target_address(), *index);
 }
 
 #[use_dyn_host]
-pub fn log<const N: usize, H: Host + ?Sized>(interpreter: &mut Interpreter, host: &mut H) {
+pub fn log<const N: usize, H: Host + ?Sized>(
+    interpreter: &mut Interpreter<impl InterpreterTypes>,
+    host: &mut H,
+) {
     require_non_staticcall!(interpreter);
 
-    pop!(interpreter, offset, len);
+    popn!([offset, len], interpreter);
     let len = as_usize_or_fail!(interpreter, len);
     gas_or_fail!(interpreter, gas::log_cost(N as u8, len as u64));
     let data = if len == 0 {
@@ -193,43 +286,60 @@ pub fn log<const N: usize, H: Host + ?Sized>(interpreter: &mut Interpreter, host
     } else {
         let offset = as_usize_or_fail!(interpreter, offset);
         resize_memory!(interpreter, offset, len);
-        Bytes::copy_from_slice(interpreter.shared_memory.slice(offset, len))
+        Bytes::copy_from_slice(interpreter.memory.slice_len(offset, len).as_ref())
     };
-
     if interpreter.stack.len() < N {
-        interpreter.instruction_result = InstructionResult::StackUnderflow;
+        interpreter
+            .control
+            .set_instruction_result(InstructionResult::StackUnderflow);
         return;
     }
-
-    let mut topics = Vec::with_capacity(N);
-    for _ in 0..N {
-        // SAFETY: stack bounds already checked few lines above
-        topics.push(B256::from(unsafe { interpreter.stack.pop_unsafe() }));
-    }
+    let Some(topics) = interpreter.stack.popn::<N>() else {
+        interpreter
+            .control
+            .set_instruction_result(InstructionResult::StackUnderflow);
+        return;
+    };
 
     let log = Log {
-        address: interpreter.contract.target_address,
-        data: LogData::new(topics, data).expect("LogData should have <=4 topics"),
+        address: interpreter.input.target_address(),
+        data: LogData::new(topics.into_iter().map(B256::from).collect(), data)
+            .expect("LogData should have <=4 topics"),
     };
 
     host.log(log);
 }
 
 #[use_dyn_host]
-pub fn selfdestruct<H: Host + ?Sized, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
+pub fn selfdestruct<WIRE: InterpreterTypes, H: Host + ?Sized>(
+    interpreter: &mut Interpreter<WIRE>,
+    host: &mut H,
+) {
     require_non_staticcall!(interpreter);
-    pop_address!(interpreter, target);
+    popn!([target], interpreter);
+    let target = target.into_address();
 
-    let Some(res) = host.selfdestruct(interpreter.contract.target_address, target) else {
-        interpreter.instruction_result = InstructionResult::FatalExternalError;
+    let Some(res) = host.selfdestruct(interpreter.input.target_address(), target) else {
+        interpreter
+            .control
+            .set_instruction_result(InstructionResult::FatalExternalError);
         return;
     };
 
     // EIP-3529: Reduction in refunds
-    if !SPEC::enabled(LONDON) && !res.previously_destroyed {
-        refund!(interpreter, gas::SELFDESTRUCT)
+    if !interpreter.runtime_flag.spec_id().is_enabled_in(LONDON) && !res.previously_destroyed {
+        interpreter
+            .control
+            .gas_mut()
+            .record_refund(gas::SELFDESTRUCT)
     }
-    gas!(interpreter, gas::selfdestruct_cost(SPEC::SPEC_ID, res));
 
-    interpreter.instruction_result = InstructionResult::SelfDestruct;
+    gas!(
+        interpreter,
+        gas::selfdestruct_cost(interpreter.runtime_flag.spec_id(), res)
+    );
+
+    interpreter
+        .control
+        .set_instruction_result(InstructionResult::SelfDestruct);
 }
